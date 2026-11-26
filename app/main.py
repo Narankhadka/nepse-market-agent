@@ -1,8 +1,9 @@
 from contextlib import asynccontextmanager
 from typing import Optional
+from pydantic import BaseModel, Field
 from fastapi import Depends, FastAPI, Query
 from fastapi.responses import JSONResponse
-from app import queries
+from app import agent,queries
 from app.db import get_conn, init_db
 from app.queries import NotFound
 
@@ -55,3 +56,11 @@ def sector_explain(
     conn=Depends(get_db),
 ):
     return queries.explain_sector(conn, sector, date)
+
+class AskRequest(BaseModel):
+    question: str = Field(min_length=3, max_length=300)
+
+
+@app.post("/ask")
+def ask(body: AskRequest, conn=Depends(get_db)):
+    return agent.ask(conn, body.question)
