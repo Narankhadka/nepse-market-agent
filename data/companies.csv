@@ -1,0 +1,40 @@
+symbol,name,sector
+SGBL,Sagarmatha Grand Bank,Commercial Banks
+KRBL,Koshi River Bank,Commercial Banks
+MNBL,Manaslu National Bank,Commercial Banks
+PKDB,Pokhara Development Bank,Development Banks
+LMDB,Lumbini Merchant Dev Bank,Development Banks
+JNDB,Janaki Development Bank,Development Banks
+BRFL,Birat Finance,Finance
+NYFL,Narayani Finance,Finance
+TRFL,Terai Finance,Finance
+HMHL,Himal Hotels,Hotels and Tourism
+CTHL,Chitwan Tourism Holdings,Hotels and Tourism
+PTHL,Patan Heritage Hotel,Hotels and Tourism
+MKHP,Marsyangdi Kali Hydro,Hydropower
+TMHP,Tamor Mid Hydro,Hydropower
+BGHP,Bagmati Gorge Hydro,Hydropower
+NIVL,Nepal Investment Ventures,Investment
+HIVL,Himalaya Investment,Investment
+SIVL,Sajha Investment,Investment
+JVLI,Jeevan Life Insurance,Life Insurance
+SRLI,Suraksha Life,Life Insurance
+AALI,Aashraya Life,Life Insurance
+GRMP,Gorkha Rice Mills,Manufacturing and Processing
+EVSM,Everest Sugar Mills,Manufacturing and Processing
+KTCM,Kathmandu Cement,Manufacturing and Processing
+GRMF,Grameen Rise Microfinance,Microfinance
+SHMF,Shakti Microfinance,Microfinance
+NVMF,Navjyoti Microfinance,Microfinance
+NMF1,Nepal Growth Fund 1,Mutual Fund
+NMF2,Himal Balanced Fund,Mutual Fund
+NMF3,Sajha Equity Fund,Mutual Fund
+SNLI,Surakshya Non-Life,Non-Life Insurance
+PNLI,Prithvi General Insurance,Non-Life Insurance
+RNLI,Rastriya Non-Life,Non-Life Insurance
+NTCO,Nepal Telecom Corp Demo,Others
+HPOW,Himal Power Utilities,Others
+NCSL,National Cargo Services,Others
+BNTL,Biratnagar Trading,Trading
+STCL,Salt Trading Corp Demo,Trading
+NTDL,Nepal Trade Depot,Trading
