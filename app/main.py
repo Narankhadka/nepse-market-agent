@@ -21,7 +21,7 @@ def get_db():
         yield conn
     finally:
         conn.close()
-        
+
 @app.exception_handler(NotFound)
 async def not_found_handler(request, exc):
     return JSONResponse(status_code=404, content={"error": str(exc)})
@@ -33,3 +33,13 @@ def health():
 @app.get("/sectors")
 def sectors(date: Optional[str] = Query(None, pattern=DATE_PATTERN), conn=Depends(get_db)):
     return queries.sector_performance(conn, date)
+
+@app.get("/movers")
+def movers(
+    direction: str = Query("gainers", pattern="^(gainers|losers)$"),
+    limit: int = Query(5, ge=1, le=20),
+    sector: Optional[str] = None,
+    date: Optional[str] = Query(None, pattern=DATE_PATTERN),
+    conn=Depends(get_db),
+):
+    return queries.top_movers(conn, direction, limit, sector, date)

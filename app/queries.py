@@ -83,3 +83,13 @@ def sector_performance(conn, date=None):
         )
     result.sort(key=lambda r: r["avg_change_pct"], reverse=True)
     return {"date": date, "previous_date": prev, "sectors": result}
+
+def top_movers(conn, direction="gainers", limit=5, sector=None, date=None):
+    if direction not in ("gainers", "losers"):
+        raise NotFound("direction must be 'gainers' or 'losers'.")
+    date, _, stocks = stock_changes(conn, date)
+    if sector is not None:
+        sector = resolve_sector(conn, sector)
+        stocks = [s for s in stocks if s["sector"] == sector]
+    stocks.sort(key=lambda s: s["change_pct"], reverse=(direction == "gainers"))
+    return {"date": date, "direction": direction, "sector": sector, "stocks": stocks[:limit]}
