@@ -43,3 +43,7 @@ def movers(
     conn=Depends(get_db),
 ):
     return queries.top_movers(conn, direction, limit, sector, date)
+
+@app.get("/companies/{symbol}/history")
+def history(symbol: str, days: int = Query(10, ge=1, le=60), conn=Depends(get_db)):
+    return queries.company_history(conn, symbol, days)

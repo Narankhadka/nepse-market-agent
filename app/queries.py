@@ -93,3 +93,19 @@ def top_movers(conn, direction="gainers", limit=5, sector=None, date=None):
         stocks = [s for s in stocks if s["sector"] == sector]
     stocks.sort(key=lambda s: s["change_pct"], reverse=(direction == "gainers"))
     return {"date": date, "direction": direction, "sector": sector, "stocks": stocks[:limit]}
+
+def company_history(conn, symbol, days=10):
+    symbol = symbol.strip().upper()
+    company = conn.execute(
+        "SELECT symbol, name, sector FROM companies WHERE symbol = ?",
+        (symbol,),
+    ).fetchone()
+    if company is None:
+        raise NotFound(f"Symbol '{symbol}' not found.")
+    rows = conn.execute(
+        "SELECT trade_date, open, high, low, close, volume FROM prices "
+        "WHERE symbol = ? ORDER BY trade_date DESC LIMIT ?",
+        (symbol, days),
+    ).fetchall()
+    history = [dict(r) for r in reversed(rows)]
+    return {"company": dict(company), "history": history}
