@@ -109,3 +109,27 @@ def company_history(conn, symbol, days=10):
     ).fetchall()
     history = [dict(r) for r in reversed(rows)]
     return {"company": dict(company), "history": history}
+
+def explain_sector(conn, sector, date=None):
+    sector = resolve_sector(conn, sector)
+    date, prev, stocks = stock_changes(conn, date)
+    mine = [s for s in stocks if s["sector"] == sector]
+    avg = round(sum(s["change_pct"] for s in mine) / len(mine), 2)
+    turnover = sum(s["turnover"] for s in mine)
+    prev_turnover = sum(s["prev_turnover"] for s in mine)
+    turnover_change = round((turnover - prev_turnover) * 100.0 / prev_turnover, 1)
+    ranked = sorted(mine, key=lambda s: s["change_pct"], reverse=True)
+    market_avg = round(sum(s["change_pct"] for s in stocks) / len(stocks), 2)
+    return {
+        "sector": sector,
+        "date": date,
+        "previous_date": prev,
+        "avg_change_pct": avg,
+        "market_avg_change_pct": market_avg,
+        "turnover": turnover,
+        "turnover_change_pct": turnover_change,
+        "stocks_up": sum(1 for s in mine if s["change_pct"] > 0),
+        "stocks_total": len(mine),
+        "best_stock": ranked[0],
+        "worst_stock": ranked[-1],
+    }

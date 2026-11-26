@@ -47,3 +47,11 @@ def movers(
 @app.get("/companies/{symbol}/history")
 def history(symbol: str, days: int = Query(10, ge=1, le=60), conn=Depends(get_db)):
     return queries.company_history(conn, symbol, days)
+
+@app.get("/sectors/{sector}/explain")
+def sector_explain(
+    sector: str,
+    date: Optional[str] = Query(None, pattern=DATE_PATTERN),
+    conn=Depends(get_db),
+):
+    return queries.explain_sector(conn, sector, date)
