@@ -32,7 +32,7 @@ CREATE INDEX IF NOT EXISTS idx_prices_date ON prices(trade_date);
 def get_conn():
     """Open a SQLite connection with Row access and foreign keys enabled."""
     path = os.environ.get("NEPSE_DB", DEFAULT_DB)
-    conn = sqlite3.connect(path)
+    conn = sqlite3.connect(path, check_same_thread=False)
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON;")
     return conn

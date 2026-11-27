@@ -1,5 +1,7 @@
 from contextlib import asynccontextmanager
 from typing import Optional
+from pathlib import Path
+from fastapi.responses import FileResponse, JSONResponse
 from pydantic import BaseModel, Field
 from fastapi import Depends, FastAPI, Query
 from fastapi.responses import JSONResponse
@@ -26,6 +28,13 @@ def get_db():
 @app.exception_handler(NotFound)
 async def not_found_handler(request, exc):
     return JSONResponse(status_code=404, content={"error": str(exc)})
+
+INDEX_HTML = Path(__file__).resolve().parent.parent / "static" / "index.html"
+
+
+@app.get("/", include_in_schema=False)
+def home():
+    return FileResponse(INDEX_HTML)
 
 @app.get("/health")
 def health():

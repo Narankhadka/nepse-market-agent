@@ -1,10 +1,20 @@
-"""Route market questions to database queries via rules or Claude."""
+"""Route market questions to database queries via rules or Gemini."""
 import json
+import logging
 import os
 import re
+import time
+
+from dotenv import load_dotenv
 
 from app import queries
 from app.queries import NotFound
+
+load_dotenv()
+
+logger = logging.getLogger(__name__)
+FALLBACK_MODEL = "gemini-3.5-flash-lite"
+RETRY_CODES = {429, 500, 503, 504}  # usually temporary errors_dotenv()
 
 SECTOR_WORDS = {
     "commercial bank": "Commercial Banks",
@@ -222,73 +232,72 @@ SYSTEM_PROMPT = (
 )
 
 
-def _run_tool(conn, name, args):
-    funcs = {
-        "sector_performance": queries.sector_performance,
-        "top_movers": queries.top_movers,
-        "company_history": queries.company_history,
-        "explain_sector": queries.explain_sector,
-    }
-    if name not in funcs:
-        return json.dumps({"error": f"Unknown tool: {name}"}), True
-    try:
-        return json.dumps(funcs[name](conn, **args), default=str), False
-    except (NotFound, TypeError) as e:
-        return json.dumps({"error": str(e)}), True
+def ask_llm(conn, question, client=None, model=None, rounds=3):
+    """Run Gemini tool-calling loop grounded in database queries."""
+    from google import genai
+    from google.genai import errors, types
 
-
-def ask_llm(conn, question, client=None, model=None):
-    """Run Claude tool-use loop so answers stay grounded in database results."""
     if client is None:
-        import anthropic
+        client = genai.Client()
 
-        client = anthropic.Anthropic()
-    model = model or os.environ.get("NEPSE_AGENT_MODEL", "claude-sonnet-4-5")
-    messages = [{"role": "user", "content": question}]
-    tool_used = None
+    def sector_performance(date: str | None = None):
+        """Average % change and turnover for every sector on a day, best first."""
+        return queries.sector_performance(conn, date=date)
 
-    for _ in range(5):
-        resp = client.messages.create(
-            model=model,
-            max_tokens=1000,
-            system=SYSTEM_PROMPT,
-            tools=TOOLS,
-            messages=messages,
-        )
-        if resp.stop_reason != "tool_use":
-            text = "".join(b.text for b in resp.content if b.type == "text")
-            return {"answer": text, "tool": tool_used, "mode": "llm"}
+    def top_movers(direction: str, limit: int = 5, sector: str | None = None, date: str | None = None):
+        """Top gaining or losing stocks on a day, optionally inside one sector."""
+        return queries.top_movers(conn, direction=direction, limit=limit, sector=sector, date=date)
 
-        messages.append({"role": "assistant", "content": resp.content})
-        results = []
-        for block in resp.content:
-            if block.type == "tool_use":
-                tool_used = block.name
-                content, is_error = _run_tool(conn, block.name, block.input)
-                results.append(
-                    {
-                        "type": "tool_result",
-                        "tool_use_id": block.id,
-                        "content": content,
-                        "is_error": is_error,
-                    }
-                )
-        messages.append({"role": "user", "content": results})
+    def company_history(symbol: str, days: int = 10):
+        """Recent daily prices for one stock symbol."""
+        return queries.company_history(conn, symbol=symbol, days=days)
 
-    return {
-        "answer": "Sorry, I could not finish answering. Please ask in a simpler way.",
-        "tool": tool_used,
-        "mode": "llm",
-    }
+    def explain_sector(sector: str, date: str | None = None):
+        """Why a sector moved: change vs market, best and worst stock, turnover change."""
+        return queries.explain_sector(conn, sector=sector, date=date)
+
+    primary_model = model or os.environ.get("NEPSE_AGENT_MODEL", "gemini-3.8-flash")
+    models_to_try = [primary_model] if model else [primary_model, FALLBACK_MODEL]
+    config = types.GenerateContentConfig(
+        system_instruction=SYSTEM_PROMPT,
+        tools=[sector_performance, top_movers, company_history, explain_sector],
+    )
+
+    last_err = None
+    for attempt in range(rounds):
+        for m in models_to_try:
+            try:
+                resp = client.models.generate_content(
+                model=m,
+                contents=question,
+                config=config,
+)
+            except errors.APIError as e:
+                if e.code not in RETRY_CODES:
+                    raise  # a real problem, such as a wrong model name
+                last_err = e
+                logger.warning("%s failed with error %s", m, e.code)
+                continue  # try the next model
+            if not resp.text:
+                raise RuntimeError(f"{m} returned an empty answer")
+            return {"answer": resp.text, "tool": "gemini_tools", "mode": "llm"}
+
+        if attempt < rounds - 1:
+            time.sleep(2 ** (attempt + 1))  # wait 2s, then 4s
+
+    if last_err is not None:
+        raise last_err
+
+    raise RuntimeError("Gemini request failed without an API error")
 
 
 def ask(conn, question):
-    """Use Claude if ANTHROPIC_API_KEY is set, otherwise fall back to rules."""
-    if os.environ.get("ANTHROPIC_API_KEY"):
+    """Use Gemini if GEMINI_API_KEY is set, otherwise fall back to rules."""
+    if os.environ.get("GEMINI_API_KEY"):
         try:
             return ask_llm(conn, question)
         except Exception:
-            pass
+            logger.exception("Gemini failed, using rules instead")
     try:
         return ask_rules(conn, question)
     except NotFound as e:
