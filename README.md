@@ -51,7 +51,7 @@ Missing records return HTTP `404` with `{"error": "..."}`. Invalid parameters re
 Every answer comes directly from the SQLite query functions in `app/queries.py`:
 
 - **Rules mode (default):** Works offline with no API key. Matches English and Nepali market keywords (`badhyo`, `girdo`, `ghatyo`, `kina`) and checks longer sector phrases first so `Non-Life Insurance` and `Microfinance` do not collide with `Life Insurance` or `Finance`.
-- **LLM mode (optional):** If `ANTHROPIC_API_KEY` is set, Claude calls the four database query tools via tool-use and answers from their outputs. If the API call fails, it falls back to rules mode automatically.
+- **LLM mode (optional):** If `GEMINI_API_KEY` is set, Gemini calls the four database query tools and answers from their outputs. If the API call fails, it falls back to rules mode automatically.
 
 Example request (`POST /ask`):
 
